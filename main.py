@@ -27,7 +27,7 @@ def connect_db(pwd):
 with open('SQL/password.json') as f:
     # {"password": "xyz"}
     data = json.load(f)
-pwd=data['password']
+pwd=data['pass']
 
 cnxn,cursor = connect_db(pwd)
 
@@ -66,6 +66,23 @@ def login(email: str,password:str):
     else:
         return {"Status":"Login error Access not Granted"}
 
+
+@app.post('/auth/')
+def get_user_auth(email: str):
+    passcode = py_functions.send_auth_code(email,cursor)
+    py_functions.generate_auth_email(passcode,[email])
+    return {"status":'Sent Passcode'}
+
+
+@app.post('/forget/')
+def forget(email: str,passcode:int,new_pass:str):
+    validate=py_functions.validate_passcode(email,passcode,cnxn)
+    if validate:
+        passcode = py_functions.update_password(email,new_pass,cursor)
+        py_functions.generate_password_change_email([email])
+        return {"status":'Success'}
+    else:
+        return {"status":"Passcode is wrong"}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8000)
